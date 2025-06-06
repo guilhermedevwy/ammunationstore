@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ammu-Nation Store</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      color: #333;
+      margin: 0;
+    }
+    header, footer {
+      background: #111;
+      color: white;
+      text-align: center;
+      padding: 15px;
+    }
+    main {
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      gap: 20px;
+    }
+    .categoria {
+      background: white;
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .categoria h2 {
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 5px;
+    }
+    .item {
+      margin-bottom: 10px;
+    }
+    .item input {
+      margin-top: 5px;
+      padding: 5px;
+      width: 60%;
+    }
+    .item button {
+      background: #111;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      margin-top: 5px;
+      cursor: pointer;
+    }
+    aside#carrinho {
+      background: white;
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      margin-top: 30px;
+    }
+    #notaFiscal {
+      white-space: pre-wrap;
+      background: #eee;
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Ammu-Nation Store</h1>
+  </header>
+
+  <main>
+    <div id="produtos"></div>
+
+    <aside id="carrinho">
+      <h2>Carrinho</h2>
+      <ul id="listaCarrinho"></ul>
+      <button onclick="limparCarrinho()" style="margin-top:10px;background:#555;color:white;border:none;padding:8px;border-radius:4px;cursor:pointer;">🧹 Limpar Carrinho</button>
+      <p><strong>Total:</strong> <span id="total">R$ 0,00</span></p>
+      <button onclick="gerarNotaFiscal()">Finalizar Compra</button>
+      <div id="notaFiscal" style="display:none;"></div>
+    </aside>
+  </main>
+
+  <footer>
+    by: lost
+  </footer>
+
+  <script>
+    const categorias = {
+      "FUZIS DE PRECISÃO": {
+        produtos: {
+          "BARRETT M107A1": 80000,
+          "CHEYTAC M200": 100000,
+          "ACCURACY AXMC": 70000,
+          "M2010 ESR": 60000,
+          "REMINGTON 700": 30000,
+          "ORSIS T-5000": 50000
+        },
+        fora: 60000
+      },
+      "PISTOLAS": {
+        produtos: {
+          "MK23 MOD 0": 25000,
+          "SIG M17": 15000,
+          "UDAV": 18000,
+          "GLOCK 17": 10000,
+          "BERETTA 92": 12000,
+          "FN FIVE-SEVEN": 18000
+        },
+        fora: 19000
+      },
+      "COLETES BALÍSTICOS": {
+        produtos: {
+          "Nível IIA": 10000,
+          "Nível II": 15000,
+          "Nível IIIA": 20000,
+          "Nível III": 30000,
+          "Nível IV": 50000
+        },
+        fora: null
+      },
+      "OUTROS EQUIPAMENTOS": {
+        produtos: {
+          "Coldre de Cintura": 500,
+          "Coldre de Ombro": 750,
+          "Coldre de Perna": 950,
+          "Granada de Fragmentação": 1800,
+          "Granada de Fumaça": 750,
+          "C4 com Detonador Remoto": 10000,
+          "Mina de Proximidade": 7500,
+          "Taser X2 Civil": 2500
+        },
+        fora: null
+      }
+    };
+
+    const carrinho = [];
+    let total = 0;
+
+    function formatarPreco(valor) {
+      return 'R$ ' + valor.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+
+    function carregarProdutos() {
+      const produtosDiv = document.getElementById("produtos");
+      produtosDiv.innerHTML = "";
+
+      for (const categoria in categorias) {
+        const { produtos, fora } = categorias[categoria];
+        const div = document.createElement("div");
+        div.className = "categoria";
+        div.innerHTML = `<h2>${categoria}</h2>`;
+
+        for (const nome in produtos) {
+          const preco = produtos[nome];
+          div.innerHTML += `
+            <div class="item">
+              <strong>${nome}</strong> - ${formatarPreco(preco)}
+              <button onclick="adicionarItem('${nome}', ${preco})">Comprar</button>
+            </div>`;
+        }
+
+        if (fora) {
+          const idInput = `fora-${categoria.replace(/\s+/g, '-')}`;
+          div.innerHTML += `
+            <div class="item">
+              <input type="text" id="${idInput}" placeholder="Item fora do catálogo" />
+              <button onclick="adicionarItemFora('${idInput}', ${fora})">Adicionar - ${formatarPreco(fora)}</button>
+            </div>`;
+        }
+
+        produtosDiv.appendChild(div);
+      }
+    }
+
+    function adicionarItem(nome, preco) {
+      carrinho.push({ nome, preco });
+      total += preco;
+      atualizarCarrinho();
+    }
+
+    function adicionarItemFora(idInput, preco) {
+      const nome = document.getElementById(idInput).value;
+      if (!nome.trim()) return alert("Digite o nome do item.");
+      carrinho.push({ nome: nome + " (Fora do catálogo)", preco });
+      total += preco;
+      atualizarCarrinho();
+    }
+
+    function atualizarCarrinho() {
+      const lista = document.getElementById("listaCarrinho");
+      lista.innerHTML = "";
+      carrinho.forEach((item, index) => {
+        const li = document.createElement("li");
+        li.textContent = `${item.nome} - ${formatarPreco(item.preco)}`;
+        const btn = document.createElement("button");
+        btn.textContent = "✖";
+        btn.style.marginLeft = "10px";
+        btn.style.background = "#900";
+        btn.style.color = "#fff";
+        btn.style.border = "none";
+        btn.style.padding = "4px 8px";
+        btn.style.borderRadius = "4px";
+        btn.style.cursor = "pointer";
+        btn.onclick = () => removerItem(index);
+        li.appendChild(btn);
+        lista.appendChild(li);
+      });
+      document.getElementById("total").textContent = formatarPreco(total);
+    }
+
+    function limparCarrinho() {
+      carrinho.length = 0;
+      total = 0;
+      atualizarCarrinho();
+      document.getElementById("notaFiscal").style.display = "none";
+    }
+
+    function removerItem(index) {
+      total -= carrinho[index].preco;
+      carrinho.splice(index, 1);
+      atualizarCarrinho();
+    }
+
+    function gerarNotaFiscal() {
+      const lista = carrinho.map(item => item.nome).join(', ');
+      const nota = `
+AMMU-NATION⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯  
+𐔌͡🗒️  Nota Fiscal ✿
+
+〈 ◌ Loja: Ammu-Nation 〉  
+〈 ◌ Valor: ${formatarPreco(total)} 〉  
+〈 ◌ Produto: ${lista} 〉  
+〈 ◌ Destinatário: http://aminoapps.com/p/3k1mvh 〉  
+〈 ◌ Banco: http://aminoapps.com/p/t6xd1xt 〉  
+
+⎯⎯⎯⎯⎯⬚͒⎯⎯⎯⎯⎯⎯⬚͒⎯⎯⎯⎯⎯`;
+
+      const divNota = document.getElementById("notaFiscal");
+      divNota.textContent = nota;
+      divNota.style.display = "block";
+    }
+
+    window.onload = carregarProdutos;
+  </script>
+</body>
+</html>
